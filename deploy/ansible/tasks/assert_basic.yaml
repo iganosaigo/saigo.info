@@ -1,0 +1,5 @@
+- name: "Assert | env variable is provided"
+  ansible.builtin.assert:
+    msg: 'env variable must be provided. Use -e "env=test" for example'
+    that:
+      - env is defined

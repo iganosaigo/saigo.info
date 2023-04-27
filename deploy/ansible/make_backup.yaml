@@ -1,0 +1,63 @@
+---
+- name: Check env vars
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+  tags: always
+  tasks:
+    - name: "Import | Basic Asserts"
+      ansible.builtin.import_tasks:
+        file: tasks/assert_basic.yaml
+
+- name: Clear Facts Cache
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: "Meta | Clear Cache"
+      ansible.builtin.meta: clear_facts
+
+- name: Make DB Backup
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Import | Vars Tasks"
+      ansible.builtin.import_tasks:
+        file: tasks/variables.yaml
+
+    - name: "Run | Compose Get Services"
+      ansible.builtin.command:
+        chdir: "{{ deploy_dir_compose }}"
+        cmd: "{{ docker_compose_cmd }} ps --format json"
+      register: containers
+      changed_when: false
+
+    - name: "Facts | ContainerID and Backup File"
+      ansible.builtin.set_fact:
+        db_container_id: "{{ containers.stdout | from_json | json_query(id_query) }}"
+        backup_file: "{{ backup_dir }}/db_{{ ansible_date_time.iso8601_basic_short }}.gz"
+      vars:
+        id_query: "[?Service=='db'].ID | [0]"
+
+    - name: "Run | Dumping with pg_dump" # noqa command-instead-of-shell
+      ansible.builtin.shell:
+        cmd: "{{ cmd_make_backup }}"
+        chdir: "{{ deploy_dir_compose }}"
+      register: result
+      changed_when: false
+
+    - name: "Create Dir | {{ backup_local_dir }}"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      ansible.builtin.file:
+        path: "{{ backup_local_dir }}"
+        state: directory
+
+    - name: "Fetch | {{ backup_file }}"
+      become: false
+      ansible.builtin.fetch:
+        src: "{{ backup_file }}"
+        dest: "{{ backup_local_dir }}/{{ ansible_hostname }}_{{ backup_file | basename }}"
+        flat: true

@@ -1,0 +1,63 @@
+---
+- name: Check env vars
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+  tags: always
+  tasks:
+    - name: "Import | Basic Asserts"
+      ansible.builtin.import_tasks:
+        file: tasks/assert_basic.yaml
+
+- name: Wait for instance is up
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait connection for instance
+      ansible.builtin.wait_for_connection:
+        sleep: 10
+        timeout: 300
+      tags: always
+
+- name: Common prepare
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: common
+
+- name: Container Runtime setup
+  hosts: all
+  become: true
+  # Deprecated in favour k3s
+  # pre_tasks:
+  #   - name: "Import | Vars Tasks"
+  #     ansible.builtin.import_tasks:
+  #       file: tasks/variables.yaml
+  #     tags: always
+  tasks:
+    # Compose deprecated. Used to on first versions testing. Has been moved to k3s.
+    - name: "Block | Compose mode"
+      when: deploy_mode == 'compose'
+      block:
+        - name: "Import | Docker role"
+          ansible.builtin.import_role:
+            name: geerlingguy.docker
+          tags: docker
+
+        - name: "Import | Docker login"
+          ansible.builtin.import_tasks:
+            file: tasks/docker_login.yaml
+          tags: docker
+
+        - name: "Import | Compose role"
+          ansible.builtin.import_role:
+            name: compose_project
+          tags: deploy
+
+    - name: "Import | K3S install"
+      ansible.builtin.import_role:
+        name: k3s
+      tags: deploy
+      when: deploy_mode == 'k3s'

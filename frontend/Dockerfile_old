@@ -1,0 +1,48 @@
+# Build image
+FROM node:12-alpine as build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY tsconfig.json .
+COPY public /app/public
+COPY src /app/src
+
+RUN npm run build
+
+# Main image
+FROM nginx:1.23
+
+# Install python3 with certbot and crossplane
+RUN apt update && \
+    apt install -y python3 python3-dev libssl-dev curl build-essential && \
+    curl -L 'https://bootstrap.pypa.io/get-pip.py' | python3 && \
+    pip install --no-cache-dir \
+        certbot==2.2.0 \
+        crossplane==0.5.8 && \
+    apt remove --purge -y build-essential python3-dev libssl-dev curl && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create nginx dirs for letsencrypt, cache, ssl
+RUN mkdir /var/spool/nginx && \
+    mkdir /var/spool/nginx/temp && \
+    mkdir /var/spool/nginx/cache && \
+    mkdir /usr/share/nginx/acme && \
+    mkdir /scripts && \
+    mkdir /etc/nginx/ssl && \
+    mkdir /etc/nginx/default_ssl
+
+# Builded JS app
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Wrapper script and basic nginx.conf
+COPY Docker/cert.py /scripts
+COPY Docker/nginx.conf /etc/nginx/nginx.conf
+
+ENTRYPOINT ["python3", "/scripts/cert.py"]
+
+CMD ["nginx", "-g", "daemon off;"]

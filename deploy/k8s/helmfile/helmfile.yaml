@@ -1,0 +1,81 @@
+bases:
+  - helmfiles/environments.yaml
+
+---
+templates:
+  default:
+    createNamespace: true
+    missingFileHandler: Warn
+    values:
+      - envs/default/{{`{{ .Release.Name }}`}}.yaml
+      - envs/default/{{`{{ .Release.Name }}`}}.yaml.gotmpl
+      - envs/{{`{{ .Environment.Name }}`}}/{{`{{ .Release.Name }}`}}.yaml.gotmpl
+
+bases:
+  - helmfiles/repositories.yaml
+
+# TODO: Make dynamic release generator from params
+releases:
+  - name: metrics-server
+    namespace: {{ .Values.metrics_server.namespace }}
+    chart: metrics-server/metrics-server
+    condition: metrics_server.enabled
+    version: {{ .Values.metrics_server.version }}
+    values:
+      - args:
+        - --kubelet-insecure-tls
+    labels:
+      type: {{ .Values.metrics_server.type }}
+
+  - name: cert-manager
+    namespace: {{ .Values.cert_manager.namespace }}
+    chart: jetstack/cert-manager
+    condition: cert_manager.enabled
+    version: {{ .Values.cert_manager.version }}
+    labels:
+      type: {{ .Values.cert_manager.type }}
+    inherit:
+      - template: default
+
+  - name: nginx
+    namespace: {{ .Values.ingress.namespace }}
+    chart: ingress-nginx/ingress-nginx
+    condition: ingress.enabled
+    version: {{ .Values.ingress.version }}
+    labels:
+      type: {{ .Values.ingress.type }}
+    inherit:
+      - template: default
+
+  - name: postgres
+    namespace: {{ .Values.postgres.namespace }}
+    chart: postgresql/postgresql
+    condition: postgres.enabled
+    version: {{ .Values.postgres.version }}
+    labels:
+      type: {{ .Values.postgres.type }}
+    inherit:
+      - template: default
+
+  - name: saigoblog
+    namespace: {{ .Values.saigoblog.namespace }}
+    chart: ../chart/saigoblog
+    condition: saigoblog.enabled
+    labels:
+      type: {{ .Values.saigoblog.type }}
+    inherit:
+      - template: default
+    needs:
+    {{- range .Values.saigoblog.needs }}
+    - {{ . | indent 6 }}
+    {{- end }}
+
+
+helmDefaults:
+  wait: true
+  waitForJobs: true
+  timeout: 600
+  atomic: true
+  historyMax: 10
+  createNamespace: true
+

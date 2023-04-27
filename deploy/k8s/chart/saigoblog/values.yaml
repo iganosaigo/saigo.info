@@ -1,0 +1,247 @@
+# TODO: This is temporary global params that used in helprers for default securitycontext
+# Make more clear
+runAsUser: 101
+allowPrivilegeEscalation: false
+
+environment: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+  # Auto mount sa to pods
+  automountServiceAccountToken: true
+  
+  createPullSecrets:
+    imagePullSecrets: ""
+    imagePullSecretsContent: ""
+  
+
+revisionHistoryLimit: 10
+
+ingress:
+  enabled: false
+  serverName: "test.local"
+  className: "nginx"
+
+  # -- Annotations to ingress
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts: []
+    # - host: example.com
+    #   paths:
+    #     - path: /
+    #       pathType: ImplementationSpecific
+  tls: []
+   # - secretName: example-cert-sercret
+   #   hosts:
+   #     - example.com
+
+# Frontend part
+frontend:
+  name: frontend
+  enabled: true
+  image:
+    registry: registry.gitlab.com
+    repository: saigohome/saigoblog/frontend
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  containerName: frontend
+
+  customNginxConfigs: true
+  nginxVhostDir: "/etc/nginx/vhost.d"
+
+  annotations: {}
+
+  # -- The update strategy to apply to the Deployment
+  updateStrategy: {}
+  #  rollingUpdate:
+  #    maxUnavailable: 1
+  #  type: RollingUpdate
+
+  # -- seconds to avoid killing pods before we are ready
+  minReadySeconds: 0
+
+  # -- Optional array of imagePullSecrets containing private registry credentials
+  imagePullSecrets: []
+
+  nameOverride: ""
+  fullnameOverride: ""
+  
+  replicaCount: 1
+  
+  podAnnotations: {}
+  
+  # -- Security Context policies for controller pods
+  podSecurityContext: {}
+  enforceDefaultSecurity: false
+
+  sysctls: {}
+  # sysctls:
+  #   "net.core.somaxconn": "8192"
+
+  # -- Improve connection draining when pod is deleted using a lifecycle hook:
+  lifecycle: {}
+    # preStop:
+    #   exec:
+    #     command:
+    #       - sleep 100
+
+  # -- Security Context policies for frontend container.
+  containerSecurityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  
+  # -- Define list of environments
+  envs: []
+
+  livenessProbe: {}
+    # httpGet:
+    #   path: "/healthz"
+    #   port: 10254
+    #   scheme: HTTP
+    # initialDelaySeconds: 10
+    # periodSeconds: 10
+    # timeoutSeconds: 1
+    # successThreshold: 1
+    # failureThreshold: 5
+
+  readinessProbe: {}
+    # httpGet:
+    #   path: "/healthz"
+    #   port: 10254
+    #   scheme: HTTP
+    # initialDelaySeconds: 10
+    # periodSeconds: 10
+    # timeoutSeconds: 1
+    # successThreshold: 1
+    # failureThreshold: 3
+
+  # -- Configures the list of ports that the frontend container listens on
+  containerPort:
+    http-alt: 8080
+
+  service:
+    annotations: {}
+    type: ClusterIP
+    externalIPs: []
+    externalTrafficPolicy: ""
+    sessionAffinity: ""
+
+    # -- Define port which service listen on. https has higher weight
+    enableHttp: true
+    enableHttps: false
+
+    appProtocol: true
+
+    # -- Configures ports number and name mapping
+    ports:
+      http: 80
+      https: 443
+    targetPorts:
+      http: http-alt
+      https: https-alt
+
+  resources: {}
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+  
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  nodeSelector:
+    kubernetes.io/os: linux
+  
+  tolerations: []
+  affinity: {}
+
+  # -- avoid killing pods before we are ready
+  terminationGracePeriodSeconds: 10
+
+# Backend part
+backend:
+  name: backend
+  enabled: true
+  deployEnvs: {}
+  image:
+    registry: registry.gitlab.com
+    repository: saigohome/saigoblog/backend
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  containerName: backend
+
+  annotations: {}
+  updateStrategy: {}
+  minReadySeconds: 0
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  replicaCount: 1
+  podAnnotations: {}
+  podSecurityContext: {}
+  sysctls: {}
+  lifecycle: {}
+  containerSecurityContext: {}
+  envs: []
+  livenessProbe: {}
+  readinessProbe: {}
+  containerPort:
+    http-alt: 5000
+
+  service:
+    annotations: {}
+    type: ClusterIP
+    externalIPs: []
+    externalTrafficPolicy: ""
+    sessionAffinity: ""
+    enableHttp: true
+    enableHttps: false
+    appProtocol: true
+    ports:
+      http: 80
+      https: 443
+    targetPorts:
+      http: http-alt
+      https: https-alt
+
+  resources: {}
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  nodeSelector:
+    kubernetes.io/os: linux
+  
+  tolerations: []
+  affinity: {}
+
+  terminationGracePeriodSeconds: 10
+
+# ## Postgresql chart config
+# ## ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql/values.yaml
+# postgresql:
+#   enabled: false

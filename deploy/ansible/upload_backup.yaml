@@ -1,0 +1,61 @@
+---
+- name: Check env vars
+  hosts: localhost
+  gather_facts: false
+  become: false
+  connection: local
+  tags: always
+  tasks:
+    - name: "Assert | backup_to_restore is provided"
+      ansible.builtin.assert:
+        msg: 'backup_to_restore=filepath variable must be provided.'
+        that:
+          - backup_to_restore is defined
+
+    - name: "Import | Basic Asserts"
+      ansible.builtin.import_tasks:
+        file: tasks/assert_basic.yaml
+
+- name: Upload DB Backup
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: "Import | Vars Tasks"
+      ansible.builtin.import_tasks:
+        file: tasks/variables.yaml
+
+    - name: Try to upload backup
+      block:
+        - name: "Create File | {{ backup_to_restore }}"
+          ansible.builtin.copy:
+            src: "{{ backup_to_restore }}"
+            dest: "{{ backup_dir }}/"
+            owner: "{{ deploy_dir_owner }}"
+            group: "{{ deploy_dir_group }}"
+            mode: "{{ deploy_dir_permission }}"
+
+        - name: "Run | Compose Get Services"
+          ansible.builtin.command:
+            chdir: "{{ deploy_dir_compose }}"
+            cmd: "{{ docker_compose_path }} -f {{ deploy_compose_file }} ps --format json"
+          register: containers
+          changed_when: false
+
+        - name: "Facts | ContainerID"
+          ansible.builtin.set_fact:
+            db_container_id: "{{ containers.stdout | from_json | json_query(id_query) }}"
+            backup_file: "{{ backup_dir }}/{{ backup_to_restore | basename }}"
+          vars:
+            id_query: "[?Service=='db'].ID | [0]"
+
+        - name: "Run | Uploading With psql " # noqa command-instead-of-shell
+          ansible.builtin.shell:
+            cmd: "{{ cmd_restore_backup }}"
+            chdir: "{{ deploy_dir_compose }}"
+          changed_when: false
+      always:
+        - name: "File | Delete Uploaded Backup file"
+          ansible.builtin.file:
+            path: "{{ backup_file }}"
+            state: absent

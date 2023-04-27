@@ -1,0 +1,9 @@
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned
+
+backend:
+  deployEnvs:
+    APP_MODE: test
+    APP_PG_HOST: postgres-postgresql
+    {{- toYaml .Values.backendEnvs | nindent 4 }}

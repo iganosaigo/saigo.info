@@ -1,0 +1,36 @@
+
+k3s_disable_addons:
+  - traefik
+k3s_kubelet_args:
+  - "--pod-max-pids=200"
+  - "--system-reserved=cpu=200m,memory=300Mi"
+  - "--kube-reserved=cpu=200m,memory=600Mi"
+  - "--eviction-hard=memory.available<100Mi"
+  - "--allowed-unsafe-sysctls=net.core.*,net.ipv4.*"
+k3s_disable_network_policy: true
+k3s_disable_cloud_controller: true
+k3s_disable_helm_controller: true
+k3s_version: "v1.24.12+k3s1"
+
+# Deprecated
+# deploy_bin_dir: /usr/local/sbin
+# docker_compose_path: "{{ deploy_bin_dir }}/docker-compose"
+# docker_compose_cmd: "{{ docker_compose_path }} -f {{ deploy_compose_file }}"
+# docker_daemon_options:
+#   experimental: true
+#   userns-remap: default
+
+# app_db_service_name: db
+# app_frontend_image: "registry.gitlab.com/saigohome/saigoblog/frontend"
+# app_backend_image: "registry.gitlab.com/saigohome/saigoblog/backend"
+# app_frontend_service_name: frontend
+# app_backend_service_name: backend
+
+# backup_dir: "{{ deploy_dir_root }}/backup"
+# backup_local_dir: "{{ playbook_dir }}/backup"
+
+# cmd_pg_dump: "pg_dump -U {{ app_postgres_user }} -O --clean --if-exists -Z 4 {{ app_postgres_dbname }}"
+# cmd_pg_restore: "psql -U {{ app_postgres_user }} {{ app_postgres_dbname }}"
+
+# cmd_make_backup: "docker exec {{ db_container_id }} {{ cmd_pg_dump }} > {{ backup_file }}"
+# cmd_restore_backup: "zcat {{ backup_file }} | docker exec -i {{ db_container_id }} {{ cmd_pg_restore }}"

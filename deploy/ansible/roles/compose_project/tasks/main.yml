@@ -1,0 +1,106 @@
+---
+- name: "Create Dir | {{ compose_deploy_dir_root }}"
+  ansible.builtin.file:
+    path: "{{ compose_deploy_dir_root }}"
+    state: directory
+    owner: "{{ compose_dir_owner }}"
+    group: "{{ compose_dir_group }}"
+    mode: "{{ compose_dir_permission }}"
+
+- name: "Create Dir | Deploy Dirs"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ compose_dir_owner }}"
+    group: "{{ compose_dir_group }}"
+    mode: "{{ compose_dir_permission }}"
+  loop:
+    - "{{ compose_deploy_dir }}"
+    - "{{ compose_backup_dir }}"
+    - "{{ compose_nginx_dir }}"
+
+- name: "Create Dir | {{ compose_nginx_confd_dir }}"
+  ansible.builtin.file:
+    path: "{{ compose_nginx_confd_dir }}"
+    state: directory
+    mode: "{{ compose_dir_permission }}"
+
+- name: "Template | Nginx Vhosts"
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "{{ compose_nginx_confd_dir }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+    mode: 0644
+  with_fileglob: "templates/nginx_vhost/*"
+  loop_control:
+    label: "{{ item | basename }}"
+  register: nginx_vhosts
+
+- name: "Fact | Set List of Managed Files"
+  ansible.builtin.set_fact:
+    managed_files: >-
+      "{{
+        nginx_vhosts.results |
+        selectattr('invocation', 'defined') |
+        map(attribute='invocation.module_args.dest') |
+        list
+      }}"
+
+- name: "Find | All files in {{ compose_nginx_confd_dir }}"
+  ansible.builtin.find:
+    paths: "{{ compose_nginx_confd_dir }}"
+    patterns: "*"
+  register: all_files
+
+- name: "Fact | Set List of Files to Delete"
+  ansible.builtin.set_fact:
+    files_to_delete: "{{ all_files.files | map(attribute='path') | difference(managed_files) }}"
+
+- name: "Delete File | Delete Unmanaged Vhosts"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ files_to_delete }}"
+
+- name: "Template | {{ deploy_compose_file }}"
+  ansible.builtin.template:
+    src: "docker-compose.yaml.j2"
+    dest: "{{ compose_deploy_dir }}/{{ compose_config_file }}"
+    mode: 0640
+  register: compose_config
+  diff: false
+  notify:
+    - Compose Update
+
+- name: "Run | Compose Get Services"
+  ansible.builtin.command:
+    chdir: "{{ compose_deploy_dir }}"
+    cmd: "{{ compose_cmd }} ps --format json"
+  register: containers
+  changed_when: false
+
+# TODO: make dict from loop
+- name: "Facts | ContainerIDs"
+  ansible.builtin.set_fact:
+    db_container_id: "{{ containers.stdout | from_json | json_query(db_id_query) }}"
+    front_container_id: "{{ containers.stdout | from_json | json_query(frontend_id_query) }}"
+  vars:
+    db_id_query: "[?Service=='{{ app_db_service_name }}'].ID | [0]"
+    frontend_id_query: "[?Service=='{{ app_frontend_service_name }}'].ID | [0]"
+
+# TODO: Make idepotent
+- name: "Compose Need Update" # noqa no-handler
+  ansible.builtin.command:
+    cmd: "/bin/true"
+  notify:
+    - Compose Update
+  when: compose_config is changed or
+        'latest' in [app_frontend_version, app_backend_version]
+
+- name: "Nginx need reload" # noqa no-handler
+  ansible.builtin.command:
+    cmd: "/bin/true"
+  notify:
+    - Nginx Reload
+  when:
+    - nginx_vhosts is changed
+    - front_container_id != ""

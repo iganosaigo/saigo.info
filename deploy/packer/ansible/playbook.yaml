@@ -1,0 +1,23 @@
+---
+- name: 'Provision Image'
+  hosts: default
+  become: true
+
+  tasks:
+    - name: Installing required packages
+      ansible.builtin.dnf:
+        name:
+          - jq
+          - vim-common
+          - net-tools
+          - sysstat
+          - tar
+          - unzip
+
+    - name: Importing Docker role
+      import_role:
+        name: geerlingguy.docker
+      vars:
+        docker_daemon_options:
+          experimental: true
+          userns-remap: "default"

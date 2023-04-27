@@ -1,0 +1,5 @@
+auth:
+  postgresPassword: {{ .Values.postgresqlAdmPass }}
+  username: {{ .Values.backendEnvs.APP_PG_USER }}
+  password: {{ .Values.backendEnvs.APP_PG_PASS }}
+  database: {{ .Values.backendEnvs.APP_PG_DB }}

@@ -1,0 +1,21 @@
+---
+common_timezone: Europe/Moscow
+common_selinux_state: permissive
+common_selinux_policy: targeted
+common_install_package:
+  - vim-enhanced
+  - jq
+  - sysstat
+  - net-tools
+  - mtr
+  - lsof
+  - strace
+  - man-pages
+  - htop
+  - unzip
+  - git
+  - rsync
+  - python38
+  - python3-requests
+  - tcpdump
+  - wget

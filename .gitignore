@@ -1,0 +1,65 @@
+.vscode/
+
+
+### DEPLOY
+
+# Auth key for YC
+deploy/key.json
+
+# Packer stuff
+deploy/packer/ansible/roles
+deploy/packer/*.pkrvars.hcl
+
+# Terraform stuff
+deploy/terraform/backend-*.tf
+deploy/terraform/*/.terraform*
+deploy/terraform/*/*.tfvars
+
+# Ansible stuff
+!deploy/ansible/roles
+deploy/ansible/roles/*
+!deploy/ansible/roles/common
+!deploy/ansible/roles/compose_project
+!deploy/ansible/roles/k3s
+deploy/ansible/collections
+deploy/ansible/inventory*
+deploy/ansible/backup
+deploy/ansible/env-*
+!deploy/ansible/env-example*
+ansible.log
+
+# K8s Stuff
+**/kubeconfig*
+
+# Python stuff
+.mypy_cache/
+__pycache__/
+.python-version
+.venv/
+
+# Reports
+*.svg
+
+htmlcov/
+coverage.xml
+.coverage
+coverage/
+bandit-report.xml
+
+
+# JS
+# dependencies
+!frontend/public/**
+!frontend/src/assets/**
+node_modules/
+.npm/
+build/
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+
+# misc
+.DS_Store
+

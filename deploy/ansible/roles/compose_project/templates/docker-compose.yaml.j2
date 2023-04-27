@@ -1,0 +1,60 @@
+{{ ansible_managed | comment }}
+services:
+  {{ app_frontend_service_name }}:
+    image: "{{ app_frontend_image }}:{{ app_frontend_version  }}"
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+{% if app_enforce_security is defined and app_enforce_security %}
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETGID
+      - SETUID
+{% endif %}
+    volumes:
+      - {{ compose_nginx_confd_dir }}:/etc/nginx/conf.d
+      - data-letsencrypt:/etc/letsencrypt
+    depends_on:
+      - {{ app_backend_service_name }}
+{% if app_letsencrypt is defined and app_letsencrypt %}
+    environment:
+        APP_LETSENCRYPT:  {{ app_letsencrypt }}
+        APP_LETSENCRYPT_EMAIL: {{ app_letsencrypt_email }}
+{% endif %}
+
+  {{ app_backend_service_name }}:
+    image: "{{ app_backend_image }}:{{ app_backend_version }}"
+    restart: always
+    environment:
+      APP_MODE: "{{ env }}"
+      APP_PG_USER: "{{ app_postgres_user }}"
+      APP_PG_PASS: "{{ app_postgres_password }}"
+      APP_PG_DB: "{{ app_postgres_dbname }}"
+      APP_PG_HOST: "{{ app_db_service_name }}"
+{% if app_jwt_expire_minutes is defined %}
+      APP_JWT_EXPIRE_MINUTES: {{ app_jwt_expire_minutes }}
+{% endif %}
+{% if app_jwt_secret_key is defined %}
+      APP_JWT_SECRET_KEY: {{ app_jwt_secret_key }}
+{% endif %}
+
+  {{ app_db_service_name }}:
+    image: "postgres:{{ app_postgres_version }}"
+    environment:
+      POSTGRES_USER: "{{ app_postgres_user }}"
+      POSTGRES_PASSWORD: "{{ app_postgres_password }}"
+      POSTGRES_DB: "{{ app_postgres_dbname }}"
+    restart: always
+    volumes:
+      - {{ compose_deploy_dir_root }}/pg_data:/var/lib/postgresql/data
+
+networks:
+  default:
+    name: bridge-app
+
+volumes:
+  data-letsencrypt:

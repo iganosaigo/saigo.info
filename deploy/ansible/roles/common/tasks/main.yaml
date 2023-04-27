@@ -1,0 +1,19 @@
+---
+- name: Set Timezone
+  community.general.system.timezone:
+    name: "{{ common_timezone }}"
+
+- name: Manage SELinux
+  ansible.posix.selinux:
+    state: "{{ common_selinux_state }}"
+    policy: "{{ common_selinux_policy }}"
+
+- name: Add epel repository
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install packages
+  ansible.builtin.dnf:
+    name: "{{ common_install_package }}"
+    state: present

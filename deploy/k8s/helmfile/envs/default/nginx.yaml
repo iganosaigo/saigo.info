@@ -1,0 +1,98 @@
+controller:
+  # dnsPolicy: ClusterFirstWithHostNet
+  # hostNetwork: true
+  image:
+    allowPrivilegeEscalation: true
+  kind: DaemonSet
+  # affinity:
+  #   nodeAffinity:
+  #     requiredDuringSchedulingIgnoredDuringExecution:
+  #       nodeSelectorTerms:
+  #         - matchExpressions:
+  #           - key: node-role.kubernetes.io/control-plane
+  #             operator: DoesNotExist
+  updateStrategy:
+   rollingUpdate:
+     maxUnavailable: 0
+     maxSurge: 1
+   type: RollingUpdate
+  minReadySeconds: 30
+  service:
+    enabled: true
+    type: LoadBalancer
+  ingressClassResource:
+    default: true
+  sysctls:
+    "net.core.somaxconn": 4096
+    "net.ipv4.tcp_max_syn_backlog": 4096
+    "net.ipv4.ip_local_port_range": "1024 65000"
+  allowSnippetAnnotations: true
+  config:
+    http-snippet: |
+      proxy_cache_path /tmp/nginx_cache levels=1:1 keys_zone=static:2m inactive=10m max_size=128m use_temp_path=off;
+    annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount,{,},',\""
+    client-header-timeout: 10
+    client-body-timeout: 10
+    client-body-buffer-size: 16
+    enable-ocsp: "true"
+    hsts: "true"
+    hsts-include-subdomains: "true"
+    hsts-max-age: 600
+    hsts-preload: "true"
+    keep-alive: 60
+    log-format-escape-json: "true"
+    log-format-upstream:
+      '{
+        "time": "$time_iso8601",
+        "remote_addr": "$proxy_protocol_addr",
+        "x_forwarded_for": "$proxy_add_x_forwarded_for",
+        "request_id": "$req_id",
+        "remote_user": "$remote_user",
+        "bytes_sent": $bytes_sent,
+        "request_time": $request_time,
+        "status": $status,
+        "vhost": "$host",
+        "request_proto": "$server_protocol",
+        "path": "$uri",
+        "request_query": "$args",
+        "request_length": $request_length,
+        "duration": $request_time,
+        "method": "$request_method",
+        "http_referrer": "$http_referer",
+      }'
+    max-worker-connections: 16384
+    max-worker-open-files: 32768
+    ssl-ciphers: "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH"
+    ssl-protocols: "TLSv1.2"
+    ssl-session-cache: "true"
+    ssl-session-cache-size: "10m"
+    use-gzip: "true"
+    gzip-level: 3
+    gzip-min-length: 40 # Default
+    worker-process: 2
+    use-http2: "true"
+    proxy-body-size: "4m"
+    proxy-connect-timeout: 3
+    proxy-read-timeout: 10
+    proxy-send-timeout: 10
+    proxy-buffering: "on"
+    proxy-buffers-number: "8"
+    proxy-buffer-size: "16k"
+    # SSL ?
+    ssl-redirect: "true"
+    force-ssl-redirect: "true"
+    no-tls-redirect-locations: "/.well-known/acme-challenge"
+    ssl-reject-handshake: "true"
+    # debug-connections: "1.1.1.1, 192.168.2.101"
+
+# TODO: make default backend with redirect
+defaultBackend:
+  enabled: true
+  # resources:
+  #   limits:
+  #     cpu: 200m
+  #     memory: 100Mi
+  #   requests:
+  #     cpu: 10m
+  #     memory: 20Mi
+

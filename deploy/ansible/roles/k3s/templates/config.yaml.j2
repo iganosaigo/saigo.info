@@ -1,0 +1,31 @@
+cluster-domain: "{{ app_fqdn | default("cluster.local") }}"
+{% if k3s_disable_network_policy %}
+disable-network-policy: true
+{% endif %}
+{% if k3s_disable_cloud_controller %}
+disable-cloud-controller: true
+{% endif %}
+{% if k3s_disable_helm_controller %}
+disable-helm-controller: true
+{% endif %}
+{% if k3s_enable_lb %}
+node-label: svccontroller.k3s.cattle.io/enablelb=true
+{% endif %}
+{% if k3s_kubelet_args | length > 0 %}
+kubelet-arg:
+{% for arg in k3s_kubelet_args %}
+    - {{ arg }}
+{% endfor %}
+{% endif %}
+write-kubeconfig-mode: "0640"
+tls-san:
+  - "{{ app_fqdn | default(ansible_fqdn) }}"
+  - "{{ inventory_hostname }}"
+default-local-storage-path: "{{ k3s_localpath_dir }}"
+{% if k3s_disable_addons | length > 0 %}
+disable:
+{% for addon in k3s_disable_addons %}
+  - {{ addon }}
+{% endfor %}
+{% endif %}
+cluster-init: true

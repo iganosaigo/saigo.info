@@ -1,0 +1,114 @@
+{{- if .Values.frontend.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "saigoblog.frontend.fullname" . }}
+  labels:
+    {{- include "saigoblog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.frontend.annotations }}
+  annotations:
+  {{- toYaml .Values.frontend.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "saigoblog.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- if .Values.frontend.updateStrategy }}
+  strategy: {{ toYaml .Values.frontend.updateStrategy | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.frontend.minReadySeconds }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.frontend.customNginxConfigs }}
+        checksum/config: {{ include (print $.Template.BasePath "/frontend-configmap.yaml") . | sha256sum }}
+        {{- end }}
+      {{- with .Values.frontend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "saigoblog.labels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+    {{- with .Values.frontend.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "saigoblog.serviceAccountName" . }}
+    {{- if or .Values.frontend.podSecurityContext .Values.frontend.sysctls }}
+      securityContext:
+    {{- end }}
+    {{- if .Values.frontend.podSecurityContext }}
+      {{- toYaml .Values.frontend.podSecurityContext | nindent 8 }}
+    {{- end }}
+    {{- if .Values.frontend.sysctls }}
+        sysctls:
+      {{- range $sysctl, $value := .Values.frontend.sysctls }}
+          - name: {{ $sysctl | quote }}
+            value: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+      containers:
+        - name: {{ .Values.frontend.containerName }}
+          {{- with .Values.frontend.image }}
+          image: "{{ .registry }}/{{ .repository }}:{{ .tag | default "latest" }}"
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}
+          {{- if .Values.frontend.lifecycle }}
+          lifecycle: {{ toYaml .Values.frontend.lifecycle | nindent 12 }}
+          {{- end }}
+          securityContext:
+          {{- if .Values.frontend.containerSecurityContext }}
+            {{- toYaml .Values.frontend.containerSecurityContext | nindent 12 }}
+          {{- else }}
+            {{- if .Values.frontend.enforceDefaultSecurity }}
+            {{- include "security.containerSecurityContext" . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.frontend.envs }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.frontend.livenessProbe }}
+          livenessProbe: {{ toYaml .Values.frontend.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.frontend.readinessProbe }}
+          readinessProbe: {{ toYaml .Values.frontend.readinessProbe | nindent 12 }}
+          {{- end }}
+          ports:
+          {{- range $key, $value := .Values.frontend.containerPort }}
+            - name: {{ $key }}
+              containerPort: {{ $value }}
+              protocol: TCP
+          {{- end }}
+          {{- with .Values.frontend.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.frontend.customNginxConfigs }}
+          volumeMounts:
+            - name: nginx-configs
+              mountPath: {{ .Values.frontend.nginxVhostDir }}
+          {{- end }}
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.frontend.terminationGracePeriodSeconds }}
+      {{- if .Values.frontend.customNginxConfigs }}
+      volumes:
+        - name: nginx-configs
+          configMap:
+            name: {{ include "saigoblog.frontend.fullname" . }}
+      {{- end }}
+{{- end }}

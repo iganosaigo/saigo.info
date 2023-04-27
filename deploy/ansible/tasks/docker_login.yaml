@@ -1,0 +1,6 @@
+- name: "Docker | Login"
+  community.docker.docker_login:
+    registry_url: "{{ docker_private_registry }}"
+    username: "{{ docker_private_username }}"
+    password: "{{ docker_private_password }}"
+  when: docker_private_registry is defined

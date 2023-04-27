@@ -1,0 +1,18 @@
+---
+# Example for envs. Deprecated in favour to k3s
+app_fqdn: saigo.info
+deploy_mode: compose
+app_enforce_security: true
+docker_private_registry: "registry.gitlab.com"
+docker_private_username: "username"
+docker_private_password: "blabla"
+app_frontend_version: latest
+app_backend_version: latest
+app_postgres_version: "14.6"
+app_postgres_dbname: app
+app_postgres_user: username
+app_postgres_password: blabla
+app_letsencrypt: false
+app_jwt_expire_minutes: 43200
+app_letsencrypt_email: "example@example.com"
+app_jwt_secret_key: "optional"

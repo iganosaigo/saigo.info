@@ -1,0 +1,22 @@
+environments:
+  prod:
+    values:
+      - envs/default/apps.yaml
+      - envs/{{ .Environment.Name }}/apps.yaml
+      - serverName: saigo.info
+    secrets:
+      - envs/{{ .Environment.Name }}/secrets.yaml
+  test:
+    values:
+      - envs/default/apps.yaml
+      - envs/{{ .Environment.Name }}/apps.yaml
+      - serverName: test01.local
+    secrets:
+      - envs/{{ .Environment.Name }}/secrets.yaml
+  spray:
+    values:
+      - envs/default/apps.yaml
+      - envs/{{ .Environment.Name }}/apps.yaml
+      - serverName: saigoblog.local
+    secrets:
+      - envs/{{ .Environment.Name }}/secrets.yaml

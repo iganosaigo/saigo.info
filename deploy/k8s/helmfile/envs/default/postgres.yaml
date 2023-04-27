@@ -1,0 +1,8 @@
+image:
+  tag: 14.7.0
+  pullPolicy: Always
+architecture: standalone
+primary:
+  persistence:
+    size: 1G
+    storageClass: local-path

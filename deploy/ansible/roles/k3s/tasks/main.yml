@@ -1,0 +1,129 @@
+---
+- name: "Fact | Set K3S install script path"
+  ansible.builtin.set_fact:
+    k3s_install_script: "{{ bin_dir }}/k3s_install.sh"
+    k3s_binary: "{{ bin_dir }}/k3s"
+
+- name: "URL | Get K3S install script"
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: "{{ k3s_install_script }}"
+    mode: '0554'
+
+- name: "Create K3S Dirs"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ k3s_dir_owner }}"
+    group: "{{ k3s_dir_group }}"
+    mode: "{{ k3s_dir_permission }}"
+  loop:
+    - "{{ k3s_deploy_root_dir }}"
+    - "/etc/rancher/k3s"
+
+- name: "Template | K3S config"
+  ansible.builtin.template:
+    src: "config.yaml.j2"
+    dest: "/etc/rancher/k3s/config.yaml"
+    mode: 0640
+  register: k3s_config
+  notify:
+    - Restart K3S
+
+- name: "Stat | Vars File Existance"
+  ansible.builtin.stat:
+    path: "{{ k3s_binary }}"
+  register: k3s_presence
+
+- name: "Run | Get installed K3S version"
+  ansible.builtin.command:
+    cmd: "{{ k3s_binary }} --version"
+  register: k3s_cmd_version
+  changed_when: false
+  when: k3s_presence.stat.exists
+
+# TODO: Need to move to manually check version script.
+# Sometimes their site isn't available.
+- name: "URL | Get K3S latest stable version"
+  ansible.builtin.uri:
+    url: https://update.k3s.io/v1-release/channels
+    return_content: true
+    body_format: json
+  register: k3s_update_channels
+
+- name: "Fact | Set K3S latest available stable versions"
+  ansible.builtin.set_fact:
+    k3s_available_version: "{{ k3s_update_channels.json | json_query(version_query) }}"
+  vars:
+    version_query: "data[?id == 'stable'].latest | [0]"
+
+- name: "Fact | Set current installed version if K3S present"
+  ansible.builtin.set_fact:
+    k3s_installed_version: "{{ k3s_cmd_version.stdout.split(' ')[2] }}"
+  when: k3s_presence.stat.exists
+
+- name: "Fact | Gather all K3S versions to Dict and set version to install"
+  ansible.builtin.set_fact:
+    k3s_versions: {
+      k3s_installed: "{{ k3s_installed_version | default(omit) }}",
+      k3s_available: "{{ k3s_available_version }}",
+      k3s_needed: "{{ k3s_version }}"
+    }
+    k3s_version_to_install: "{{
+      k3s_available_version if k3s_version == 'latest' else k3s_version
+    }}"
+
+- name: "Run | Install K3S"
+  ansible.builtin.command:
+    cmd: "{{ k3s_install_script }}"
+  environment:
+    INSTALL_K3S_BIN_DIR: "{{ bin_dir }}"
+    INSTALL_K3S_SKIP_SELINUX_RPM: "true"
+    INSTALL_K3S_SELINUX_WARN: "true"
+    INSTALL_K3S_VERSION: "{{ k3s_version_to_install }}"
+  when: (not k3s_presence.stat.exists) or
+        (k3s_versions is k3s_outdated)
+
+- name: "Slurp | Get kubeconfig from remote host"
+  slurp:
+    src: "/etc/rancher/k3s/k3s.yaml"
+  run_once: yes
+  register: raw_kubeconfig
+  when: k3s_kubeconfig_localhost
+
+- name: "Fact | Convert kubeconfig to YAML"
+  set_fact:
+    kubeconfig: "{{ raw_kubeconfig.content | b64decode | from_yaml }}"
+  when: k3s_kubeconfig_localhost
+
+- name: "Fact | Override settings in kubeconfig"
+  set_fact:
+    final_kubeconfig: "{{ kubeconfig | combine(override_cluster, recursive=true) | combine(override_context, recursive=true) | combine(override_user, recursive=true) }}"
+  vars:
+    context: "{{ env }}-saigoblog"
+    user_certs: "{{ kubeconfig['users'][0]['user'] }}"
+    cluster_info: "{{ kubeconfig['clusters'][0]['cluster'] }}"
+    override_cluster: "{{ { 'clusters': [ { 'cluster': (cluster_info|combine({'server': 'https://'+inventory_hostname+':6443'})), 'name': context } ] } }}"
+    override_context: "{{ { 'contexts': [ { 'context': { 'user': context, 'cluster': context }, 'name': context } ], 'current-context': context } }}"
+    override_user: "{{ { 'users': [ { 'name': context, 'user': user_certs  } ] } }}"
+  when: k3s_kubeconfig_localhost
+
+- name: "Copy | Put kubeconfig locally"
+  copy:
+    content: "{{ final_kubeconfig | to_nice_yaml(indent=2) }}"
+    dest: "{{ playbook_dir }}/kubeconfig-{{ env }}"
+    mode: 0600
+  delegate_to: localhost
+  connection: local
+  diff: false
+  become: no
+  when: k3s_kubeconfig_localhost
+
+# - name: "Restart K3S"
+#   ansible.builtin.service:
+#     name: k3s
+#     state: restarted
+#   when:
+#     - k3s_presence.stat.exists
+#     - k3s_versions is not k3s_outdated
+#     - k3s_config is changed

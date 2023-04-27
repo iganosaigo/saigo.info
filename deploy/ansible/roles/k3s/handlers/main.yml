@@ -1,0 +1,6 @@
+---
+- name: "Restart K3S"
+  ansible.builtin.service:
+    name: k3s
+    state: restarted
+    enabled: true

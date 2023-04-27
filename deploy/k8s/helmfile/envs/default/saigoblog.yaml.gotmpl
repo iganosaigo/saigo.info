@@ -1,0 +1,46 @@
+{{- $serverName := .Values.serverName }}
+
+frontend:
+  replicaCount: 1
+  image:
+    pullPolicy: Always
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+backend:
+  replicaCount: 1
+  image:
+    pullPolicy: Always
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+    type: RollingUpdate
+
+serviceAccount:
+  createPullSecrets:
+    imagePullSecretsContent:
+      {{- toYaml .Values.pullSecret | nindent 8 }}
+
+ingress:
+  enabled: true
+  serverName: {{ $serverName }}
+  annotations:
+    nginx.ingress.kubernetes.io/server-alias: "www.{{ $serverName }}"
+  hosts:
+    - host: {{ $serverName }}
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+          serviceType: frontend
+        - path: /api
+          pathType: ImplementationSpecific
+          serviceType: backend
+  tls:
+   - secretName: {{ .Release.Name }}-cert
+     hosts:
+       - {{ $serverName }}
+       - www.{{ $serverName }}
+

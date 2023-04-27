@@ -1,0 +1,20 @@
+---
+bin_dir: /usr/local/sbin
+k3s_deploy_root_dir: /www
+k3s_dir_owner: root
+k3s_dir_group: wheel
+k3s_dir_permission: "0750"
+
+k3s_version: "latest"
+k3s_localpath_dir: "{{ k3s_deploy_root_dir }}/pv_data"
+
+k3s_disable_addons: []
+k3s_kubelet_args: []
+
+k3s_disable_network_policy: false
+k3s_disable_cloud_controller: false
+k3s_disable_helm_controller: false
+
+k3s_enable_lb: true
+
+k3s_kubeconfig_localhost: true

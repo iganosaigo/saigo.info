@@ -1,0 +1,22 @@
+---
+- name: Nginx Reload # noqa no-handler
+  ansible.builtin.command:
+    cmd: "{{ compose_cmd }} exec {{ app_frontend_service_name }} nginx -s reload"
+    chdir: "{{ compose_deploy_dir }}"
+
+- name: Compose Update
+  ansible.builtin.command:
+    cmd: /bin/true
+  notify:
+    - Compose | Update Images
+    - Compose | Run Up
+
+- name: Compose | Update Images
+  ansible.builtin.command:
+    cmd: "{{ compose_cmd }} pull {{ app_frontend_service_name }} {{ app_backend_service_name }}"
+    chdir: "{{ compose_deploy_dir }}"
+
+- name: Compose | Run Up
+  ansible.builtin.command:
+    cmd: "{{ compose_cmd }} up -d"
+    chdir: "{{ compose_deploy_dir }}"

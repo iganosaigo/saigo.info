@@ -1,0 +1,101 @@
+{{- if .Values.backend.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "saigoblog.backend.fullname" . }}
+  labels:
+    {{- include "saigoblog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.backend.annotations }}
+  annotations: {{ toYaml .Values.backend.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "saigoblog.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- if .Values.backend.updateStrategy }}
+  strategy: {{ toYaml .Values.backend.updateStrategy | nindent 4 }}
+  {{- end }}
+  minReadySeconds: {{ .Values.backend.minReadySeconds }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/backend-secret.yaml") . | sha256sum }}
+      {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "saigoblog.labels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+    {{- with .Values.backend.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "saigoblog.serviceAccountName" . }}
+    {{- if or .Values.backend.podSecurityContext .Values.backend.sysctls }}
+      securityContext:
+    {{- end }}
+    {{- if .Values.backend.podSecurityContext }}
+      {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+    {{- end }}
+    {{- if .Values.backend.sysctls }}
+        sysctls:
+      {{- range $sysctl, $value := .Values.backend.sysctls }}
+          - name: {{ $sysctl | quote }}
+            value: {{ $value | quote }}
+      {{- end }}
+    {{- end }}
+      containers:
+        - name: {{ .Values.backend.containerName }}
+          {{- with .Values.backend.image }}
+          image: "{{ .registry }}/{{ .repository }}:{{ .tag | default "latest" }}"
+          imagePullPolicy: {{ .pullPolicy }}
+          {{- end }}
+          {{- if .Values.backend.lifecycle }}
+          lifecycle: {{ toYaml .Values.backend.lifecycle | nindent 12 }}
+          {{- end }}
+          securityContext:
+          {{- if .Values.backend.containerSecurityContext }}
+            {{- toYaml .Values.backend.containerSecurityContext | nindent 12 }}
+          {{- else }}
+            {{- include "security.containerSecurityContext" . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.backend.envs }}
+          env: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.backend.livenessProbe }}
+          livenessProbe: {{ toYaml .Values.backend.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.backend.readinessProbe }}
+          readinessProbe: {{ toYaml .Values.backend.readinessProbe | nindent 12 }}
+          {{- end }}
+          ports:
+          {{- range $key, $value := .Values.backend.containerPort }}
+            - name: {{ $key }}
+              containerPort: {{ $value }}
+              protocol: TCP
+          {{- end }}
+          {{- with .Values.backend.resources }}
+          resources: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          envFrom:
+          - secretRef:
+              name: {{ include "saigoblog.backend.secretEnvName" . }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.backend.terminationGracePeriodSeconds }}
+{{- end }}

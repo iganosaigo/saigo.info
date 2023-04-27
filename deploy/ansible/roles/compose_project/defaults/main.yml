@@ -1,0 +1,18 @@
+---
+compose_dir_owner: root
+compose_dir_group: wheel
+compose_dir_permission: "0750"
+
+compose_deploy_dir_root: /www
+compose_deploy_dir: "{{ compose_deploy_dir_root }}/compose"
+compose_backup_dir: "{{ compose_deploy_dir_root }}/backup"
+compose_nginx_dir: "{{ compose_deploy_dir_root }}/nginx"
+compose_nginx_confd_dir: "{{ compose_nginx_dir }}/conf.d"
+
+compose_config_file: docker-compose.yaml
+
+bin_dir: /usr/local/sbin
+compose_bin: "{{ bin_dir }}/docker-compose"
+compose_cmd: "{{ compose_bin }} -f {{ compose_config_file }}"
+
+compose_enforce_security: false

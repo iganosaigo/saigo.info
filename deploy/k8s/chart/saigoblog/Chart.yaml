@@ -1,0 +1,17 @@
+apiVersion: v2
+name: saigoblog
+description: A Helm chart for saigonblog-app
+appVersion: "0.1.0"
+home: https://github.com/iganosaigo/saigoblog
+# dependencies:
+# - condition: postgresql.enabled
+#   name: postgresql
+#   repository: https://charts.bitnami.com/bitnami
+#   version: ~12.2.7
+keywords:
+  - kubernetes
+  - saigoblog
+type: application
+version: 0.1.0
+sources:
+  - https://github.com/iganosaigo/saigoblog

@@ -1,0 +1,13 @@
+ingress:
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned
+
+backend:
+  deployEnvs:
+    APP_PG_USER: test
+    APP_PG_PASS: test
+    APP_PG_DB: test
+    APP_PG_HOST: postgres-postgresql
+    APP_JWT_EXPIRE_MINUTES: "1440"
+    APP_JWT_SECRET_KEY: "HBd1ZIuxBR4eZDcqptxkjdsCuwm6VhRA7sGVanVHabM"
+    APP_MODE: test
