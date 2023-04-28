@@ -128,11 +128,14 @@ module "compute" {
   zone               = module.vpc.subnets.subnet-a.zone
   enable_nat         = true
   nat_ip_address     = yandex_vpc_address.public.external_ipv4_address[0].address
-  preemptible        = true
   security_group_ids = [module.sg.security_group.id]
   labels = {
     env   = var.env
     group = "webserver"
+  }
+
+  boot_disk_initialize_params = {
+    size = 20
   }
 
   serial_port_enable = true
