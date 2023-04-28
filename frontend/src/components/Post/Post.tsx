@@ -35,9 +35,9 @@ const Post: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
-    window.scrollTo(0, 0);
-  });
+  // React.useEffect(() => {
+  //   window.scrollTo(0, 0);
+  // });
 
   if (isLoading) {
     return <Spinner />;
