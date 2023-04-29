@@ -42,6 +42,10 @@ ingress:
    #   hosts:
    #     - example.com
 
+# Define common tag for all images
+# Could be overwritten by frontend and backend image section
+projectTag: ""
+
 # Frontend part
 frontend:
   name: frontend

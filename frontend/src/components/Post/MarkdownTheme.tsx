@@ -1,4 +1,4 @@
-import { Box, Center, Link, Code, chakra } from '@chakra-ui/react';
+import { Link, Code, chakra } from '@chakra-ui/react';
 
 const MarkdownTheme = {
   a: (props: any) => {
@@ -48,11 +48,25 @@ const MarkdownTheme = {
     );
   },
   h4: (props: any) => {
-    const { children } = props;
+    const { children, id } = props;
     return (
-      <chakra.h4 textAlign={'center'} my={'16px'} fontSize={'xl'} fontWeight={'bold'}>
+      <chakra.h4
+        id={id}
+        textAlign={'center'}
+        my={'16px'}
+        fontSize={'xl'}
+        fontWeight={'bold'}
+      >
         {children}
       </chakra.h4>
+    );
+  },
+  h5: (props: any) => {
+    const { id, children } = props;
+    return (
+      <chakra.h5 id={id} my={'16px'} fontSize={'lg'} fontWeight={'bold'}>
+        {children}
+      </chakra.h5>
     );
   },
 };

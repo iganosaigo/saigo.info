@@ -34,6 +34,7 @@
     "react-simplemde-editor": "^5.0.2",
     "rehype-raw": "^6.1.1",
     "remark-gfm": "^3.0.1",
+    "remark-heading-id": "^1.0.0",
     "snakecase-keys": "^5.4.4",
     "source-map-explorer": "^2.5.2",
     "typescript": "^4.7.4",
