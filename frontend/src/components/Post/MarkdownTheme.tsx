@@ -64,7 +64,14 @@ const MarkdownTheme = {
   h5: (props: any) => {
     const { id, children } = props;
     return (
-      <chakra.h5 id={id} my={'16px'} fontSize={'lg'} fontWeight={'bold'}>
+      <chakra.h5
+        id={id}
+        my={'16px'}
+        fontSize={'lg'}
+        fontWeight={'bold'}
+        as={Link}
+        href={'#' + id}
+      >
         {children}
       </chakra.h5>
     );

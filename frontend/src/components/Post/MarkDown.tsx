@@ -15,7 +15,6 @@ const MarkDown: React.FC<{ children: string }> = ({ children }) => {
 
   const removeHashCharacter = (str: string) => {
     const result = str.slice(1);
-    // console.log('Hash element', result);
     return result;
   };
 
@@ -24,6 +23,8 @@ const MarkDown: React.FC<{ children: string }> = ({ children }) => {
 
     if (hash) {
       element = document.getElementById(removeHashCharacter(hash));
+    } else {
+      window.scrollTo(0, 0);
     }
 
     if (hash && element) {
