@@ -57,8 +57,9 @@ spec:
     {{- end }}
       containers:
         - name: {{ .Values.frontend.containerName }}
+          {{- $globalTag := .Values.projectTag }}
           {{- with .Values.frontend.image }}
-          image: "{{ .registry }}/{{ .repository }}:{{ .tag | default "latest" }}"
+          image: "{{ .registry }}/{{ .repository }}:{{ coalesce .tag $globalTag "latest" }}"
           imagePullPolicy: {{ .pullPolicy }}
           {{- end }}
           {{- if .Values.frontend.lifecycle }}
