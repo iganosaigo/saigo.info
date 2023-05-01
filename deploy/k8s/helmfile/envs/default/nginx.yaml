@@ -1,16 +1,7 @@
 controller:
-  # dnsPolicy: ClusterFirstWithHostNet
-  # hostNetwork: true
   image:
     allowPrivilegeEscalation: true
   kind: DaemonSet
-  # affinity:
-  #   nodeAffinity:
-  #     requiredDuringSchedulingIgnoredDuringExecution:
-  #       nodeSelectorTerms:
-  #         - matchExpressions:
-  #           - key: node-role.kubernetes.io/control-plane
-  #             operator: DoesNotExist
   updateStrategy:
    rollingUpdate:
      maxUnavailable: 0
@@ -20,6 +11,7 @@ controller:
   service:
     enabled: true
     type: LoadBalancer
+    externalTrafficPolicy: Local
   ingressClassResource:
     default: true
   sysctls:
@@ -29,7 +21,7 @@ controller:
   allowSnippetAnnotations: true
   config:
     http-snippet: |
-      proxy_cache_path /tmp/nginx_cache levels=1:1 keys_zone=static:2m inactive=10m max_size=128m use_temp_path=off;
+      proxy_cache_path /tmp/nginx_cache levels=1:1 keys_zone=static-cache:2m inactive=10m max_size=128m use_temp_path=off;
     annotation-value-word-blocklist: "load_module,lua_package,_by_lua,location,root,proxy_pass,serviceaccount,{,},',\""
     client-header-timeout: 10
     client-body-timeout: 10
@@ -44,21 +36,31 @@ controller:
     log-format-upstream:
       '{
         "time": "$time_iso8601",
-        "remote_addr": "$proxy_protocol_addr",
+        "remote_addr": "$remote_addr",
         "x_forwarded_for": "$proxy_add_x_forwarded_for",
-        "request_id": "$req_id",
-        "remote_user": "$remote_user",
-        "bytes_sent": $bytes_sent,
-        "request_time": $request_time,
-        "status": $status,
-        "vhost": "$host",
         "request_proto": "$server_protocol",
-        "path": "$uri",
-        "request_query": "$args",
-        "request_length": $request_length,
-        "duration": $request_time,
-        "method": "$request_method",
+        "scheme": "$scheme", 
+        "http_host": "$host",
+        "remote_user": "$remote_user",
+        "request": "$request_uri",
+        "request_method": "$request_method",
+        "request_time": "$request_time",
+        "request_length": "$request_length",
+        "status": "$status",
+        "bytes_sent": "$bytes_sent",
+        "body_bytes_sent": "$body_bytes_sent",
+	    "content_length": "$content_length",
+	    "content_type": "$content_type",
         "http_referrer": "$http_referer",
+	    "http_user_agent": "$http_user_agent",
+        "cache_status": "$upstream_cache_status",
+	    "upstream": {
+          "addr": "$upstream_addr",
+          "response_time": "$upstream_response_time",
+          "status": "$upstream_status"
+        },
+        "request_id": "$req_id",
+        "uri": "$uri"
       }'
     max-worker-connections: 16384
     max-worker-open-files: 32768
@@ -68,7 +70,7 @@ controller:
     ssl-session-cache-size: "10m"
     use-gzip: "true"
     gzip-level: 3
-    gzip-min-length: 40 # Default
+    gzip-min-length: 40
     worker-process: 2
     use-http2: "true"
     proxy-body-size: "4m"
@@ -78,7 +80,6 @@ controller:
     proxy-buffering: "on"
     proxy-buffers-number: "8"
     proxy-buffer-size: "16k"
-    # SSL ?
     ssl-redirect: "true"
     force-ssl-redirect: "true"
     no-tls-redirect-locations: "/.well-known/acme-challenge"
@@ -88,11 +89,3 @@ controller:
 # TODO: make default backend with redirect
 defaultBackend:
   enabled: true
-  # resources:
-  #   limits:
-  #     cpu: 200m
-  #     memory: 100Mi
-  #   requests:
-  #     cpu: 10m
-  #     memory: 20Mi
-
